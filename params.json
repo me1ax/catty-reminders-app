@@ -179,6 +179,25 @@
       "login": "me1ax",
       "id": "melnik",
       "app": "catty-reminders-app"
+    },
+      "login": "mzpdqk",
+      "id": "khramov",
+      "app": "catty-reminders-app"
+    },
+    {
+      "login": "ShureevK",
+      "id": "shureeev",
+      "app": "catty-reminders-app"
+    },
+    {
+      "login": "nprkhn",
+      "id": "nepryakhin",
+      "app": "catty-reminders-app"
+    },
+    {
+      "login": "victonaizer",
+      "id": "popov",
+      "app": "catty-reminders-app"
     }
   ]
 }
