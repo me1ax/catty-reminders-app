@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-PROJECT_DIR="/home/vboxuser/catty-reminders-app"
+PROJECT_DIR="/home/vboxuser/devops-lab/catty-reminders-app"
 BRANCH_NAME=$1
 
 if [ -z "$BRANCH_NAME" ]; then
