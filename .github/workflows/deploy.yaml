@@ -24,7 +24,7 @@ jobs:
           host: course.prafdin.ru
           username: vboxuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 2200
+          port: 3151
           script: |
             cd /home/vboxuser/devops-lab/catty-reminders-app
             git fetch --all
