@@ -37,7 +37,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             IMG="ghcr.io/${{ steps.prep.outputs.image_name }}:latest"
-            CONTAINER="my-catty-app"
+            CONTAINER="catty-app"
 
             echo "=== Starting deploy ==="
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
