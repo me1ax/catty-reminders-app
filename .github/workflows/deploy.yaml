@@ -7,23 +7,50 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      packages: read
+      contents: read
 
     steps:
-      - name: Deploy to VM via SSH
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare image name
+        id: prep
+        run: |
+          LOWERCASE=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          echo "image_name=${LOWERCASE}" >> $GITHUB_OUTPUT
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: course.prafdin.ru
-          username: vboxuser
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: 3151
+          port: ${{ secrets.SSH_PORT }}
           script: |
-            docker stop catty-app 2>/dev/null || true
-            docker rm catty-app 2>/dev/null || true
-            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u me1ax --password-stdin
-            docker pull ghcr.io/me1ax/catty-reminders-app:latest
+            IMG="ghcr.io/${{ steps.prep.outputs.image_name }}:latest"
+            CONTAINER="my-catty-app"
+
+            echo "=== Starting deploy ==="
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+            docker pull $IMG || { echo "Pull failed"; exit 1; }
+
+            docker stop $CONTAINER 2>/dev/null && docker rm $CONTAINER 2>/dev/null
+
             docker run -d \
-              --name catty-app \
+              --restart=always \
+              --name $CONTAINER \
               -p 8181:8181 \
-              --restart always \
-              ghcr.io/me1ax/catty-reminders-app:latest
-            echo "✅ Deployment complete"
+              $IMG
+
+            docker system prune -f
+            echo "=== Deploy done ==="
