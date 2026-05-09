@@ -7,18 +7,9 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: Get release commit SHA
-        id: get_sha
-        run: |
-          # Получаем SHA коммита, на который указывает release
-          RELEASE_TAG=${{ github.event.release.tag_name }}
-          git clone --depth 1 --branch $RELEASE_TAG https://github.com/me1ax/catty-reminders-app.git /tmp/repo
-          cd /tmp/repo
-          echo "COMMIT_SHA=$(git rev-parse HEAD)" >> $GITHUB_OUTPUT
-      
-      - name: Trigger Deploy on Server
+      - name: Deploy to VM via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: course.prafdin.ru
@@ -26,10 +17,13 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: 3151
           script: |
-            cd /home/vboxuser/devops-lab/catty-reminders-app
-            git fetch --all
-            git reset --hard ${{ steps.get_sha.outputs.COMMIT_SHA }}
-            source venv/bin/activate
-            pip install -r requirements.txt
-            echo "DEPLOY_REF=${{ steps.get_sha.outputs.COMMIT_SHA }}" > .env
-            sudo systemctl restart app.service
+            docker stop catty-app 2>/dev/null || true
+            docker rm catty-app 2>/dev/null || true
+            echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u me1ax --password-stdin
+            docker pull ghcr.io/me1ax/catty-reminders-app:latest
+            docker run -d \
+              --name catty-app \
+              -p 8181:8181 \
+              --restart always \
+              ghcr.io/me1ax/catty-reminders-app:latest
+            echo "✅ Deployment complete"
