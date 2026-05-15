@@ -1,4 +1,5 @@
 name: CD Pipeline
+
 on:
   release:
     types: [published]
@@ -6,6 +7,7 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
@@ -17,18 +19,15 @@ jobs:
     - name: Deploy to Server via SSH
       uses: appleboy/ssh-action@v1.0.3
       with:
-        host: ${{ secrets.SSH_HOST }}
-        username: ${{ secrets.SSH_USER }}
+        host: course.prafdin.ru
+        username: vboxuser
         key: ${{ secrets.SSH_PRIVATE_KEY }}
-        port: ${{ secrets.SSH_PORT }}
+        port: 3151
         script: |
           cd /home/vboxuser/devops-lab/catty-reminders-app
-
           echo "IMAGE=ghcr.io/${{ steps.prep.outputs.repo_lower }}:${{ github.sha }}" > .env
           echo "DEPLOY_REF=${{ github.sha }}" >> .env
-
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
           docker compose down --remove-orphans
           docker compose up -d --force-recreate --pull always
           docker image prune -f

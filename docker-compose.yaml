@@ -1,4 +1,4 @@
-name: catty-reminders-app
+name: catty-reminders
 
 services:
   app:
@@ -8,17 +8,17 @@ services:
     environment:
       - DEPLOY_REF=${DEPLOY_REF:-NA}
     depends_on:
-      - mysql
+      - db
     restart: unless-stopped
 
-  mysql:
-    image: mysql:8.0
+  db:
+    image: mariadb:11
     environment:
-      MYSQL_ROOT_PASSWORD: mypass
-      MYSQL_DATABASE: catty_reminders
+      MARIADB_ROOT_PASSWORD: mypass
+      MARIADB_DATABASE: catty_reminders
     volumes:
-      - mysql-data:/var/lib/mysql
+      - mariadb_data:/var/lib/mysql
     restart: unless-stopped
 
 volumes:
-  mysql-data:
+  mariadb_data:

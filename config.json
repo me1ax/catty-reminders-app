@@ -5,10 +5,10 @@
     "tester": "foobar123"
   },
   "db_config": {
-    "host": "db",
+    "host": "localhost",
     "port": 3306,
     "user": "root",
-    "password": "mypass",
+    "password": "root_pass",
     "database": "catty_reminders"
   }
 }

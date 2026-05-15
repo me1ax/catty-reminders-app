@@ -18,46 +18,37 @@ jobs:
         ports:
           - 3306:3306
         options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=10s --health-timeout=5s --health-retries=3
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install pytest pytest-playwright uvicorn
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-playwright uvicorn mysql-connector-python
           playwright install chromium --with-deps
-      
       - name: Prepare config.json for tests
         run: |
           jq '.db_config.host = "127.0.0.1" | .db_config.password = "root_pass"' config.json > config.tmp && mv config.tmp config.json
-      
-      - name: Start application
+      - name: Start application in background
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
-          python -m uvicorn app.main:app --host 0.0.0.0 --port 8181 &
+          nohup python -m uvicorn app.main:app --host 127.0.0.1 --port 8181 &
           sleep 10
-      
       - name: Execute tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}
         run: |
-          export PYTHONPATH=$PYTHONPATH:$(pwd)
-          python -m pytest tests/ -v --junitxml=test_results.xml > test_result.txt 2>&1 || true
-      
+          python -m pytest tests/ -v --junitxml=test_results.xml
       - name: Upload test results
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: test_result
-          path: |
-            test_results.xml
-            test_result.txt
+          path: test_results.xml
 
   build-and-push:
     needs: test
@@ -71,26 +62,24 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Prepare image name
+      - name: Prepare Image Name
         id: prep
-        run: |
-          LOWERCASE=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
-          echo "repo=${LOWERCASE}" >> $GITHUB_OUTPUT
+        run: echo "repo_lower=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
 
-      - name: Login to GHCR
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ steps.prep.outputs.repo }}:latest
-            ghcr.io/${{ steps.prep.outputs.repo }}:${{ github.sha }}
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}:latest
+            ghcr.io/${{ steps.prep.outputs.repo_lower }}:${{ github.sha }}
           build-args: |
             DEPLOY_REF=${{ github.sha }}
