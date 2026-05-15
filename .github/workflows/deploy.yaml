@@ -12,45 +12,59 @@ jobs:
       contents: read
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
       - name: Prepare image name
         id: prep
         run: |
           LOWERCASE=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
           echo "image_name=${LOWERCASE}" >> $GITHUB_OUTPUT
 
-      - name: Login to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
         with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
+          host: course.prafdin.ru
+          username: vboxuser
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
+          port: 3151
           script: |
             IMG="ghcr.io/${{ steps.prep.outputs.image_name }}:latest"
-            CONTAINER="catty-app"
+            PROJECT_DIR="/home/vboxuser/devops-lab/catty-reminders-app"
 
-            echo "=== Starting deploy ==="
+            mkdir -p $PROJECT_DIR
+            cd $PROJECT_DIR
+
+            cat > docker-compose.yaml << 'END'
+            name: catty-reminders
+
+            services:
+              app:
+                image: $IMG
+                ports:
+                  - "8181:8181"
+                environment:
+                  - DEPLOY_REF=${DEPLOY_REF:-NA}
+                volumes:
+                  - app-data:/app/data
+                depends_on:
+                  - db
+                restart: unless-stopped
+
+              db:
+                image: postgres:15-alpine
+                environment:
+                  POSTGRES_USER: catty
+                  POSTGRES_PASSWORD: catty123
+                  POSTGRES_DB: catty_reminders
+                volumes:
+                  - postgres-data:/var/lib/postgresql/data
+                restart: unless-stopped
+
+            volumes:
+              app-data:
+              postgres-data:
+            END
+
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            docker pull $IMG || { echo "Pull failed"; exit 1; }
-
-            docker stop $CONTAINER 2>/dev/null && docker rm $CONTAINER 2>/dev/null
-
-            docker run -d \
-              --restart=always \
-              --name $CONTAINER \
-              -p 8181:8181 \
-              $IMG
-
+            docker compose down 2>/dev/null || true
+            docker pull $IMG
+            docker compose up -d
             docker system prune -f
-            echo "=== Deploy done ==="
