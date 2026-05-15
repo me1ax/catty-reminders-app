@@ -2,7 +2,7 @@ name: catty-reminders
 
 services:
   app:
-    image: ghcr.io/me1ax/catty-reminders-app:latest
+    image: $IMG
     ports:
       - "8181:8181"
     environment:
