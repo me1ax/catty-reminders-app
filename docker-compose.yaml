@@ -8,17 +8,17 @@ services:
     environment:
       - DEPLOY_REF=${DEPLOY_REF:-NA}
     depends_on:
-      - db
+      - mysql
     restart: unless-stopped
 
-  db:
-    image: mariadb:11
+  mysql:
+    image: mysql:8.0
     environment:
-      MARIADB_ROOT_PASSWORD: mypass
-      MARIADB_DATABASE: catty_reminders
+      MYSQL_ROOT_PASSWORD: mypass
+      MYSQL_DATABASE: catty_reminders
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - mysql-data:/var/lib/mysql
     restart: unless-stopped
 
 volumes:
-  mariadb_data:
+  mysql-data:
