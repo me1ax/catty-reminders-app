@@ -1,29 +1,36 @@
-name: catty-reminders
-
 services:
-  app:
-    image: ghcr.io/me1ax/catty-reminders-app:latest
-    ports:
-      - "8181:8181"
-    environment:
-      - DEPLOY_REF=${DEPLOY_REF:-NA}
-    volumes:
-      - app-data:/app/data
-    depends_on:
-      - db
-    restart: unless-stopped
-
   db:
     image: mariadb:11
+    restart: always
     environment:
-      MARIADB_ROOT_PASSWORD: mypass
-      MARIADB_DATABASE: catty_reminders
-    ports:
-      - "3306:3306"
+      - MARIADB_ROOT_PASSWORD=root_pass
+      - MARIADB_USER=user
+      - MARIADB_PASSWORD=pass
+      - MARIADB_DATABASE=catty_db
     volumes:
-      - mysql-data:/var/lib/mysql
-    restart: unless-stopped
+      - db_data:/var/lib/mysql
+    networks:
+      - catty-network
+
+  catty-app:
+    image: ${IMAGE:-ghcr.io/me1ax/catty-reminders-app:latest}
+    restart: always
+    environment:
+      - DEPLOY_REF=${DEPLOY_REF:-unknown}
+      - DB_HOST=db
+      - DB_USER=user
+      - DB_PASS=pass
+      - DB_NAME=catty_db
+    ports: 
+      - "8181:8181"
+    depends_on:
+      - db
+    networks:
+      - catty-network
+
+networks:
+  catty-network:
+    driver: bridge
 
 volumes:
-  app-data:
-  mysql-data:
+  db_data:
