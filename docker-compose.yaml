@@ -2,7 +2,7 @@ name: catty-reminders
 
 services:
   app:
-    image: $IMG
+    image: ghcr.io/me1ax/catty-reminders-app:latest
     ports:
       - "8181:8181"
     environment:
@@ -14,15 +14,16 @@ services:
     restart: unless-stopped
 
   db:
-    image: postgres:15-alpine
+    image: mariadb:11
     environment:
-      POSTGRES_USER: catty
-      POSTGRES_PASSWORD: catty123
-      POSTGRES_DB: catty_reminders
+      MARIADB_ROOT_PASSWORD: mypass
+      MARIADB_DATABASE: catty_reminders
+    ports:
+      - "3306:3306"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - mysql-data:/var/lib/mysql
     restart: unless-stopped
 
 volumes:
   app-data:
-  postgres-data:
+  mysql-data:
